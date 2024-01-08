@@ -1,0 +1,159 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+
+namespace DatabaseFinalProject
+{
+    public partial class LoginForm : Form
+    {
+        // MySqlConnection object to establish a connection to the MySQL database
+        private MySqlConnection connection = new MySqlConnection("datasource=localhost;port=3306;username=root;password=");
+
+        // Placeholder for reset code
+        private string resetCode;
+
+        // Constructor for the LoginForm
+        public LoginForm()
+        {
+            InitializeComponent();
+
+            // Set PasswordChar property of the password TextBox to '*' to hide the password characters
+            txtPass.PasswordChar = '*';
+        }
+
+        // Event handler for the Login button click event
+        private void btnLogin_Click(object sender, EventArgs e)
+        {
+            // Check if either username or password is empty
+            if (string.IsNullOrEmpty(txtUser.Text) || string.IsNullOrEmpty(txtPass.Text))
+            {
+                MessageBox.Show("Please input Username And Password");
+                return;
+            }
+
+            try
+            {
+                // Open the database connection
+                connection.Open();
+
+                // SQL query to check if the entered username and password exist in the database
+                string selectQuery = "SELECT * FROM user.login WHERE Username = @username AND Password = @password;";
+                MySqlCommand command = new MySqlCommand(selectQuery, connection);
+                command.Parameters.AddWithValue("@username", txtUser.Text);
+                command.Parameters.AddWithValue("@password", txtPass.Text);
+
+                // Execute the query and read the results using MySqlDataReader
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        // If login is successful, hide the login form and show the main form
+                        MessageBox.Show("Login Successful");
+                        this.Hide();
+                        MainForm mf = new MainForm();
+                        mf.Show();
+                    }
+                    else
+                    {
+                        // If login fails, display an error message and clear the username and password fields
+                        MessageBox.Show("Incorrect Password!");
+                        txtUser.Clear();
+                        txtPass.Clear();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Display an error message if an exception occurs during the login process
+                MessageBox.Show("Error during login: " + ex.Message);
+            }
+            finally
+            {
+                // Close the database connection in the finally block to ensure it's always closed
+                connection.Close();
+            }
+        }
+
+        // Event handler for the "Create Account" label click event
+        private void lblCAccount_Click(object sender, EventArgs e)
+        {
+            // Check if either username or password is empty
+            if (string.IsNullOrEmpty(txtUser.Text) || string.IsNullOrEmpty(txtPass.Text))
+            {
+                MessageBox.Show("Please Input Username and Password");
+                return;
+            }
+
+            try
+            {
+                // Open the database connection
+                connection.Open();
+
+                // SQL query to check if the entered username already exists in the database
+                string selectQuery = "SELECT * FROM user.login WHERE Username = @username;";
+                MySqlCommand command = new MySqlCommand(selectQuery, connection);
+                command.Parameters.AddWithValue("@username", txtUser.Text);
+
+                // Execute the query and read the results using MySqlDataReader
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        // If the username already exists, display a message indicating that the username is not available
+                        MessageBox.Show("Username Not Available");
+                    }
+                    else
+                    {
+                        // If the username is available, close the existing DataReader and proceed with user registration
+                        reader.Close();
+
+                        // SQL query to insert the new username and password into the database
+                        string insertQuery = "INSERT INTO user.login (Username, Password) VALUES (@username, @password);";
+                        MySqlCommand insertCommand = new MySqlCommand(insertQuery, connection);
+                        insertCommand.Parameters.AddWithValue("@username", txtUser.Text);
+                        insertCommand.Parameters.AddWithValue("@password", txtPass.Text);
+
+                        // Execute the insert query to create a new user account
+                        insertCommand.ExecuteNonQuery();
+
+                        // Display a message indicating that the account has been successfully created
+                        MessageBox.Show("Account Successfully Created");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Display an error message if an exception occurs during the registration process
+                MessageBox.Show("Error during registration: " + ex.Message);
+            }
+            finally
+            {
+                // Close the database connection in the finally block to ensure it's always closed
+                connection.Close();
+            }
+        }
+
+        // Event handler for the "Show Password" checkbox CheckedChanged event
+        private void cbShowPass_CheckedChanged(object sender, EventArgs e)
+        {
+            // Check if the checkbox is checked
+            if (cbShowPass.Checked)
+            {
+                // If checked, set the password textbox's PasswordChar property to '\0' (null character) to show the password
+                txtPass.PasswordChar = '\0';
+            }
+            else
+            {
+                // If unchecked, set the password textbox's PasswordChar property to '*' to hide the password
+                txtPass.PasswordChar = '*';
+            }
+        }
+    }
+}
